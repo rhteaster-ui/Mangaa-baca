@@ -66,7 +66,7 @@ export default function MusicPlayer() {
   }, []);
 
   useEffect(() => {
-    const audioUrl = currentTrack?.mp3 || currentTrack?.previewUrl;
+    const audioUrl = currentTrack?.streamUrl || currentTrack?.previewUrl || currentTrack?.mp3;
     if (!audioUrl || !audioRef.current) return;
     const audio = audioRef.current;
     audio.src = audioUrl;
@@ -80,7 +80,7 @@ export default function MusicPlayer() {
 
   function togglePlay() {
     const audio = audioRef.current;
-    if (!audio || !(currentTrack?.mp3 || currentTrack?.previewUrl)) return;
+    if (!audio || !(currentTrack?.streamUrl || currentTrack?.previewUrl || currentTrack?.mp3)) return;
     if (isPlaying) {
       audio.pause();
       setIsPlaying(false);
