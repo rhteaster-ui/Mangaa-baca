@@ -32,9 +32,9 @@ export default function MusicPlayer() {
     try {
       const res = await fetch(`/api/music?q=${encodeURIComponent(q)}`);
       const data = await res.json();
-      const list = data.results || data.data || [];
+      const list = data.results || (data.result ? [data.result] : []) || [];
       setTracks(list);
-      if (list.length > 0) setCurrentTrack((prev) => prev ?? list[0]);
+      setCurrentTrack(list[0] ?? null);
     } catch (e) {
       console.error("music search err", e);
     } finally {
@@ -66,9 +66,10 @@ export default function MusicPlayer() {
   }, []);
 
   useEffect(() => {
-    if (!currentTrack?.previewUrl || !audioRef.current) return;
+    const audioUrl = currentTrack?.mp3 || currentTrack?.previewUrl;
+    if (!audioUrl || !audioRef.current) return;
     const audio = audioRef.current;
-    audio.src = currentTrack.previewUrl;
+    audio.src = audioUrl;
     audio.load();
     setProgress(0);
     setCurrentTime(0);
@@ -79,7 +80,7 @@ export default function MusicPlayer() {
 
   function togglePlay() {
     const audio = audioRef.current;
-    if (!audio || !currentTrack?.previewUrl) return;
+    if (!audio || !(currentTrack?.mp3 || currentTrack?.previewUrl)) return;
     if (isPlaying) {
       audio.pause();
       setIsPlaying(false);
@@ -147,8 +148,8 @@ export default function MusicPlayer() {
             <circle cx="27" cy="27" r={R} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="3" />
             <circle cx="27" cy="27" r={R} fill="none" stroke={isPlaying ? "#f59e0b" : "rgba(245,158,11,0.4)"} strokeWidth="3" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={dashOff} style={{ transition: "stroke-dashoffset 0.25s linear" }} />
           </svg>
-          {currentTrack?.artworkUrl100 ? (
-            <img src={currentTrack.artworkUrl100} alt="" className="w-8 h-8 rounded-full object-cover" />
+          {currentTrack?.thumbnail || currentTrack?.artworkUrl100 ? (
+            <img src={currentTrack.thumbnail || currentTrack.artworkUrl100} alt="" className="w-8 h-8 rounded-full object-cover" />
           ) : (
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
@@ -180,13 +181,13 @@ export default function MusicPlayer() {
             {currentTrack ? (
               <div className="px-5 pt-3 pb-5 flex flex-col items-center">
                 <img
-                  src={(currentTrack.artworkUrl100 || "").replace("100x100", "400x400")}
-                  alt={currentTrack.trackName || ""}
+                  src={currentTrack.thumbnail || (currentTrack.artworkUrl100 || "").replace("100x100", "400x400") || "/favicon.png"}
+                  alt={currentTrack.trackName || currentTrack.title || ""}
                   className="w-28 h-28 rounded-2xl object-cover shadow-2xl mb-4"
                   style={{ border: "1px solid rgba(245,158,11,0.2)" }}
                 />
-                <p className="text-sm font-bold text-white text-center line-clamp-1 w-full mb-0.5">{currentTrack.trackName || "Unknown Track"}</p>
-                <p className="text-xs text-gray-400 mb-4 line-clamp-1">{currentTrack.artistName || "Unknown Artist"}</p>
+                <p className="text-sm font-bold text-white text-center line-clamp-1 w-full mb-0.5">{currentTrack.trackName || currentTrack.title || "Unknown Track"}</p>
+                <p className="text-xs text-gray-400 mb-4 line-clamp-1">{currentTrack.artistName || currentTrack.author || "Unknown Artist"}</p>
 
                 <div className="w-full mb-1">
                   <div className="w-full h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
@@ -194,7 +195,7 @@ export default function MusicPlayer() {
                   </div>
                   <div className="flex justify-between mt-1">
                     <span className="text-[10px]" style={{ color: "#6b7280" }}>{formatTime(currentTime)}</span>
-                    <span className="text-[10px]" style={{ color: "#6b7280" }}>{formatTime(duration || (currentTrack.trackTimeMillis || 0) / 1000)}</span>
+                    <span className="text-[10px]" style={{ color: "#6b7280" }}>{formatTime(duration || currentTrack.duration || (currentTrack.trackTimeMillis || 0) / 1000)}</span>
                   </div>
                 </div>
 
@@ -252,10 +253,10 @@ export default function MusicPlayer() {
                     className="w-full flex items-center gap-3 p-2 rounded-xl transition-all text-left"
                     style={{ background: currentTrack === t ? "rgba(245,158,11,0.1)" : "transparent", border: currentTrack === t ? "1px solid rgba(245,158,11,0.2)" : "1px solid transparent" }}
                   >
-                    <img src={t.artworkUrl100} alt="" className="w-9 h-9 rounded-lg object-cover flex-shrink-0" />
+                    <img src={t.thumbnail || t.artworkUrl100 || "/favicon.png"} alt="" className="w-9 h-9 rounded-lg object-cover flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-white line-clamp-1">{t.trackName}</p>
-                      <p className="text-[10px]" style={{ color: "#6b7280" }}>{t.artistName}</p>
+                      <p className="text-xs font-medium text-white line-clamp-1">{t.trackName || t.title || "Unknown Track"}</p>
+                      <p className="text-[10px]" style={{ color: "#6b7280" }}>{t.artistName || t.author || "Unknown Artist"}</p>
                     </div>
                     {currentTrack === t && isPlaying && (
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="#f59e0b" className="flex-shrink-0 animate-pulse">
