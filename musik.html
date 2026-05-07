@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple MP3 Searcher</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex flex-col items-center p-4 md:p-8">
+
+    <div class="w-full max-w-2xl text-center mb-10 mt-8">
+        <h1 class="text-4xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
+            MP3 Finder
+        </h1>
+        <p class="text-slate-400">Cari dan putar MP3 dari YouTube dengan mudah</p>
+    </div>
+
+    <!-- Search Box -->
+    <div class="w-full max-w-2xl mb-8">
+        <div class="relative flex gap-2">
+            <input 
+                type="text" 
+                id="searchInput" 
+                placeholder="Masukkan judul lagu (contoh: Inni uhibbuka)..." 
+                class="w-full px-5 py-3 rounded-xl bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-white"
+                value="Inni uhibbuka"
+            >
+            <button 
+                onclick="searchMusic()" 
+                id="searchBtn"
+                class="bg-blue-600 hover:bg-blue-500 px-6 py-3 rounded-xl font-semibold transition-all flex items-center gap-2 whitespace-nowrap"
+            >
+                <i class="fas fa-search"></i> Cari
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loading" class="hidden flex flex-col items-center gap-3 my-10">
+        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <p class="text-slate-400 italic">Mencari lagu...</p>
+    </div>
+
+    <!-- Result Area -->
+    <div id="resultContainer" class="w-full max-w-2xl hidden">
+        <div class="glass rounded-3xl p-6 overflow-hidden transition-all hover:shadow-2xl hover:shadow-blue-500/10">
+            <div class="flex flex-col md:flex-row gap-6">
+                <!-- Thumbnail -->
+                <div class="w-full md:w-48 h-48 flex-shrink-0">
+                    <img id="resThumbnail" src="" alt="Thumbnail" class="w-full h-full object-cover rounded-2xl shadow-lg">
+                </div>
+                
+                <!-- Info -->
+                <div class="flex-grow flex flex-col justify-between">
+                    <div>
+                        <h2 id="resTitle" class="text-xl font-bold mb-2 leading-tight"></h2>
+                        <div class="flex items-center gap-2 text-sm text-slate-400 mb-1">
+                            <i class="fas fa-user"></i>
+                            <span id="resAuthor"></span>
+                        </div>
+                        <div class="flex flex-wrap gap-3 text-xs text-slate-500">
+                            <span id="resDuration" class="bg-slate-800 px-2 py-1 rounded"></span>
+                            <span id="resViews" class="bg-slate-800 px-2 py-1 rounded"></span>
+                            <span id="resPublished" class="bg-slate-800 px-2 py-1 rounded"></span>
+                        </div>
+                    </div>
+
+                    <!-- Audio Player -->
+                    <div class="mt-6">
+                        <audio id="audioPlayer" controls class="w-full h-10 accent-blue-500">
+                            <source id="mp3Source" src="" type="audio/mpeg">
+                            Browser Anda tidak mendukung pemutar audio.
+                        </audio>
+                        <div class="flex justify-between items-center mt-3">
+                            <a id="downloadBtn" href="#" target="_blank" class="text-xs bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-full font-bold transition-all flex items-center gap-2">
+                                <i class="fas fa-download"></i> Download MP3
+                            </a>
+                            <a id="ytLink" href="#" target="_blank" class="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 transition-all">
+                                <i class="fab fa-youtube"></i> Tonton di YouTube
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Message -->
+    <div id="errorMessage" class="hidden text-red-400 bg-red-900/20 px-6 py-4 rounded-xl border border-red-900/50 my-5 flex items-center gap-3">
+        <i class="fas fa-exclamation-circle text-xl"></i>
+        <span id="errorText">Terjadi kesalahan saat memproses permintaan.</span>
+    </div>
+
+    <script>
+        async function searchMusic() {
+            const query = document.getElementById('searchInput').value;
+            if (!query) return;
+
+            const searchBtn = document.getElementById('searchBtn');
+            const loading = document.getElementById('loading');
+            const resultContainer = document.getElementById('resultContainer');
+            const errorMessage = document.getElementById('errorMessage');
+
+            // Reset UI
+            searchBtn.disabled = true;
+            loading.classList.remove('hidden');
+            resultContainer.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+
+            try {
+                // Encode query for URL
+                const apiUrl = `https://api-faa.my.id/faa/ytplay?query=${encodeURIComponent(query)}`;
+                
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+
+                if (data.status && data.result) {
+                    const res = data.result;
+
+                    // Update UI elements
+                    document.getElementById('resTitle').innerText = res.title;
+                    document.getElementById('resAuthor').innerText = res.author;
+                    document.getElementById('resDuration').innerText = `Durasi: ${res.duration_timestamp}`;
+                    document.getElementById('resViews').innerText = `${res.views.toLocaleString()} views`;
+                    document.getElementById('resPublished').innerText = res.published;
+                    document.getElementById('resThumbnail').src = res.thumbnail;
+                    
+                    // Audio setup
+                    const audioPlayer = document.getElementById('audioPlayer');
+                    const mp3Source = document.getElementById('mp3Source');
+                    mp3Source.src = res.mp3;
+                    audioPlayer.load(); // Reload the audio element with new source
+                    
+                    // Link buttons
+                    document.getElementById('downloadBtn').href = res.mp3;
+                    document.getElementById('ytLink').href = res.url;
+
+                    // Show container
+                    resultContainer.classList.remove('hidden');
+                } else {
+                    throw new Error("Lagu tidak ditemukan.");
+                }
+            } catch (error) {
+                document.getElementById('errorText').innerText = "Gagal memuat data: " + error.message;
+                errorMessage.classList.remove('hidden');
+            } finally {
+                loading.classList.add('hidden');
+                searchBtn.disabled = false;
+            }
+        }
+
+        // Trigger search on Enter key
+        document.getElementById('searchInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                searchMusic();
+            }
+        });
+    </script>
+</body>
+</html>
