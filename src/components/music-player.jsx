@@ -30,13 +30,26 @@ export default function MusicPlayer() {
   const doSearch = useCallback(async (q) => {
     setSearching(true);
     try {
-      const res = await fetch(`/api/music?q=${encodeURIComponent(q)}`);
+      const res = await fetch(`https://api-faa.my.id/faa/ytplay?query=${encodeURIComponent(q)}`);
       const data = await res.json();
-      const list = data.results || (data.result ? [data.result] : []) || [];
+      const track = data?.result;
+      const list = track
+        ? [{
+            ...track,
+            trackName: track.title || "Unknown Track",
+            artistName: track.author || "Unknown Artist",
+            thumbnail: track.thumbnail || "/favicon.png",
+            previewUrl: track.mp3 || "",
+            duration: Number(track.duration) || 0,
+            trackTimeMillis: (Number(track.duration) || 0) * 1000,
+          }]
+        : [];
       setTracks(list);
       setCurrentTrack(list[0] ?? null);
     } catch (e) {
       console.error("music search err", e);
+      setTracks([]);
+      setCurrentTrack(null);
     } finally {
       setSearching(false);
     }
